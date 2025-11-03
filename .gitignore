@@ -1,0 +1,4 @@
+*.bat
+/.vscode
+/Build
+/PiXELGraph-v2
