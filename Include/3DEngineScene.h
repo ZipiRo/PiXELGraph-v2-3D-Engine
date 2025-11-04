@@ -13,6 +13,7 @@ Vector3 cameraPosition;
 Vector3 targetPosition;
 Vector3 lookDirection;
 Vector3 cameraAngle;
+Matrix CameraMatrix;
 Matrix cameraRotationMatrix;
 bool cameraUpdate;
 
@@ -215,8 +216,6 @@ private:
 
     Text fps_text;
 
-    Matrix CameraMatrix;
-
     void Start() override
     {
         fps_text.transform.SetPosition(0, 0);
@@ -229,7 +228,7 @@ private:
         fieldOfView = PI / 2;
         aspectRatio = ScreenWidth / ScreenHeight;
 
-        cameraPosition = Vector3(0, 0, -30);
+        cameraPosition = Vector3(0, 0, -100);
         targetPosition = Vector3::FORWARD;
 
         lightDirection = Vector3(0, 0, -1);
@@ -313,7 +312,7 @@ private:
             }
         }
 
-        mesh.LoadFromFile("dir.obj");
+        mesh.LoadFromFile("teapot.obj");
 
         cube.position = Vector3(0, 0, 0);
         cube.scale = Vector3(10, 10, 10);
@@ -414,6 +413,12 @@ private:
         // sfear.angle.z += PI / 2 * Time::deltaTime;
         // sfear.angle.x += PI / 2 * Time::deltaTime;
         sfear.angle.y += PI / 2 * Time::deltaTime;
+        
+        
+        // mesh.angle.z += PI / 2 * Time::deltaTime;
+        // mesh.angle.x += PI / 2 * Time::deltaTime;
+        mesh.angle.y += PI / 2 * Time::deltaTime;
+
     }
 
     void Draw() override
@@ -432,6 +437,6 @@ public:
     {
         Screen::BacgroundColor = Color::Black;
         MaxFPS = 60;
-        Init(1280, 720, 2, L"3D Engine");
+        Init(1280, 720, 4, L"3D Engine");
     }
 };

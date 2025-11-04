@@ -8,6 +8,7 @@ struct Triangle
     int indices[3];
     float normalDot;
     float lightIntensity; 
+    Vector3 normal;
 };
 
 struct Mesh
@@ -24,7 +25,8 @@ struct Mesh
 
     void Transform()
     {
-        transformedPoints.reserve(points.size());
+        transformedPoints.clear();
+        transformedPoints.resize(points.size());
         angle = NormalizeAngle(angle);
         Matrix ModelMatrix = Model_Matrix(position, scale, angle);
         Matrix PVMatrix = PerspectiveMatrix * ViewMatrix;
@@ -42,6 +44,7 @@ struct Mesh
             Vector3 line2 = worldPoints[2] - worldPoints[0];
             Vector3 normal = Vector3::Normalize(Vector3::CrossProduct(line1, line2));
 
+            triangle.normal = normal;
             triangle.normalDot = Vector3::DotProduct(normal, worldPoints[0] - cameraPosition);
             triangle.lightIntensity = std::max(0.0f, Vector3::DotProduct(lightDirection, normal));
 
@@ -69,15 +72,15 @@ struct Mesh
 
         std::vector<Triangle> facesToDraw = faces;
 
-        for(int i = 0; i < facesToDraw.size() - 1; i++)
-        for(int j = i + 1; j < facesToDraw.size(); j++)
-        {
-            float z1 = transformedPoints[faces[i].indices[0]].z + transformedPoints[faces[i].indices[1]].z + transformedPoints[faces[i].indices[2]].z / 3;
-            float z2 = transformedPoints[faces[j].indices[0]].z + transformedPoints[faces[j].indices[1]].z + transformedPoints[faces[j].indices[2]].z / 3;
+        // for(int i = 0; i < facesToDraw.size() - 1; i++)
+        // for(int j = i + 1; j < facesToDraw.size(); j++)
+        // {
+        //     float z1 = (transformedPoints[faces[i].indices[0]].z + transformedPoints[faces[i].indices[1]].z + transformedPoints[faces[i].indices[2]].z) / 3;
+        //     float z2 = (transformedPoints[faces[j].indices[0]].z + transformedPoints[faces[j].indices[1]].z + transformedPoints[faces[j].indices[2]].z) / 3;
             
-            if(z1 < z2)
-                std::swap(facesToDraw[i], facesToDraw[j]);
-        }
+        //     if(z1 < z2)
+        //         std::swap(facesToDraw[i], facesToDraw[j]);
+        // }
 
         for (const auto &triangle : facesToDraw)
         {
@@ -91,7 +94,7 @@ struct Mesh
             Color faceColor(color.r * triangle.lightIntensity, color.g * triangle.lightIntensity, color.b * triangle.lightIntensity);
 
             FillTriangle(P1, P2, P3, faceColor);
-            DrawTriangle(P1, P2, P3, Color::White);
+            // DrawTriangle(P1, P2, P3, Color::White);
         }
     }
 
@@ -120,6 +123,11 @@ struct Mesh
             {
                 Triangle triangle;
                 stream >> junk >> triangle.indices[0] >> triangle.indices[1] >> triangle.indices[2];
+
+                triangle.indices[0]--;
+                triangle.indices[1]--;
+                triangle.indices[2]--;
+                
                 faces.push_back(triangle);
             }
         }
