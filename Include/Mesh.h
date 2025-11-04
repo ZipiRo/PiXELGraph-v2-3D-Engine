@@ -72,15 +72,15 @@ struct Mesh
 
         std::vector<Triangle> facesToDraw = faces;
 
-        // for(int i = 0; i < facesToDraw.size() - 1; i++)
-        // for(int j = i + 1; j < facesToDraw.size(); j++)
-        // {
-        //     float z1 = (transformedPoints[faces[i].indices[0]].z + transformedPoints[faces[i].indices[1]].z + transformedPoints[faces[i].indices[2]].z) / 3;
-        //     float z2 = (transformedPoints[faces[j].indices[0]].z + transformedPoints[faces[j].indices[1]].z + transformedPoints[faces[j].indices[2]].z) / 3;
+        for(int i = 0; i < facesToDraw.size() - 1; i++)
+        for(int j = i + 1; j < facesToDraw.size(); j++)
+        {
+            float z1 = (transformedPoints[faces[i].indices[0]].z + transformedPoints[faces[i].indices[1]].z + transformedPoints[faces[i].indices[2]].z) / 3;
+            float z2 = (transformedPoints[faces[j].indices[0]].z + transformedPoints[faces[j].indices[1]].z + transformedPoints[faces[j].indices[2]].z) / 3;
             
-        //     if(z1 < z2)
-        //         std::swap(facesToDraw[i], facesToDraw[j]);
-        // }
+            if(z1 < z2)
+                std::swap(facesToDraw[i], facesToDraw[j]);
+        }
 
         for (const auto &triangle : facesToDraw)
         {
