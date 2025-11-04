@@ -55,4 +55,16 @@ public:
     
         return result;
     }
+
+    Matrix operator*(const Vector3 &vector) const
+    {
+        Matrix vectorMatrix(4, 1);
+        vectorMatrix(0, 0) = vector.x;
+        vectorMatrix(1, 0) = vector.y;
+        vectorMatrix(2, 0) = vector.z;
+        vectorMatrix(3, 0) = 1; 
+
+        return *this * vectorMatrix;
+    }
+
 };

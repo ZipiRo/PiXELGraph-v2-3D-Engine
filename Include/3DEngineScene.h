@@ -10,6 +10,10 @@ Matrix ViewMatrix;
 
 Vector3 cameraPosition;
 Vector3 targetPosition;
+Vector3 lookDirection;
+Vector3 cameraAngle;
+
+Vector3 lightDirection;
 
 Matrix RotateX_Matrix(float angle)
 {
@@ -178,13 +182,6 @@ Vector3 TransformPoint(const Vector3 &point, const Vector3 &position, const Vect
     return transformedPoint;
 }
 
-struct Triangle
-{
-    int indices[3];
-    Vector3 normal;
-    float normalDot;
-};
-
 void DrawTriangle(const Vector3 &P1, const Vector3 &P2, const Vector3 &P3, const Color &color)
 {
     DrawLine(P1.x, P1.y, P2.x, P2.y, color);
@@ -231,103 +228,7 @@ void FillTriangle(Vector3 P1, Vector3 P2, Vector3 P3, Color color)
     }
 }
 
-struct Mesh
-{
-    Vector3 position;
-    Vector3 scale;
-    Vector3 angle;
-
-    std::vector<Vector3> points;
-    std::vector<Triangle> faces;
-
-    std::vector<Vector3> transformedPoints;
-
-    Color color;
-
-    void Transform()
-    {
-        transformedPoints.reserve(points.size());
-        angle = NormalizeAngle(angle);
-        Matrix ModelMatrix = Model_Matrix(position, scale, angle);
-        Matrix PVMatrix = PerspectiveMatrix * ViewMatrix;
-
-        for (auto &triangle : faces)
-        {
-            std::vector<Vector3> worldPoints;
-            for (const auto &index : triangle.indices)
-            {
-                Matrix PointMatrix(4, 1);
-                PointMatrix(0, 0) = points[index].x;
-                PointMatrix(1, 0) = points[index].y;
-                PointMatrix(2, 0) = points[index].z;
-                PointMatrix(3, 0) = 1;
-
-                Matrix WorldMatrix = ModelMatrix * PointMatrix;
-                worldPoints.emplace_back(WorldMatrix(0, 0), WorldMatrix(1, 0), WorldMatrix(2, 0));
-                Matrix ProjectedMatrix = PVMatrix * WorldMatrix;
-
-                float w = ProjectedMatrix(3, 0);
-                if (w != 0)
-                {
-                    ProjectedMatrix(0, 0) /= w;
-                    ProjectedMatrix(1, 0) /= w;
-                    ProjectedMatrix(2, 0) /= w;
-                }
-
-                Vector3 screenPoint;
-                screenPoint.x = (ProjectedMatrix(0, 0) + 1.0f) * 0.5f * ScreenWidth;
-                screenPoint.y = (1.0f - ProjectedMatrix(1, 0)) * 0.5f * ScreenHeight;
-                screenPoint.z = ProjectedMatrix(2, 0);
-
-                transformedPoints[index] = screenPoint;
-            }
-
-            Vector3 line1 = worldPoints[1] - worldPoints[0];
-            Vector3 line2 = worldPoints[2] - worldPoints[0];
-
-            triangle.normal = Vector3::Normalize(Vector3::CrossProduct(line1, line2));
-            triangle.normalDot = Vector3::DotProduct(triangle.normal, worldPoints[0] - cameraPosition);
-        }
-
-        // transformedPoints.clear();
-        // for(const auto& point : points)
-        // {
-        //     Vector3 screenPoint = TransformPoint(point, position, scale, angle);
-        //     screenPoint.x = (screenPoint.x + 1.0f) * 0.5f * ScreenWidth;
-        //     screenPoint.y = (1.0f - screenPoint.y) * 0.5f * ScreenHeight;
-        //     transformedPoints.push_back(screenPoint);
-        // }
-    }
-
-    void Draw()
-    {
-        Transform();
-
-        for (int i = 0; i < faces.size(); i++)
-        {
-            if (faces[i].normalDot < 0.0f)
-            {
-                Vector3 P1 = transformedPoints[faces[i].indices[0]];
-                Vector3 P2 = transformedPoints[faces[i].indices[1]];
-                Vector3 P3 = transformedPoints[faces[i].indices[2]];
-
-                FillTriangle(P1, P2, P3, Color(((i + 1) * 50) % 255, ((i + 1) * 50) % 255, 150, 0.6));
-            }
-        }
-
-        // for (const auto &triangle : faces)
-        // {
-        //     if (triangle.normalDot >= 0.0f)
-        //         continue;
-
-        //     Vector3 P1 = transformedPoints[triangle.indices[0]];
-        //     Vector3 P2 = transformedPoints[triangle.indices[1]];
-        //     Vector3 P3 = transformedPoints[triangle.indices[2]];
-
-        //     FillTriangle(P1, P2, P3, color);
-        // }
-    }
-};
+#include "Mesh.h"
 
 class EngineScene : public PiXELGraph
 {
@@ -358,13 +259,15 @@ private:
         aspectRatio = ScreenWidth / ScreenHeight;
 
         cameraPosition = Vector3(0, 0, -30);
-        targetPosition = Vector3(0, 0, 0);
+        targetPosition = Vector3::FORWARD;
+
+        lightDirection = Vector3(0, 0, -1);
 
         PerspectiveMatrix = Perspective_Matrix(fieldOfView, aspectRatio, 0.1f, 100.0f);
 
         CameraMatrix = Camera_Matrix(cameraPosition, targetPosition, Vector3::UP);
         ViewMatrix = CameraMatrix.Transpose();
-        
+
         cube.points = {
             {-0.5f, 0.5f, 0.5f},  // 0
             {0.5f, 0.5f, 0.5f},   // 1
@@ -378,38 +281,43 @@ private:
 
         cube.faces = {
             {0, 1, 2}, {0, 2, 3}, // front
-            {1, 5, 6}, {1, 6, 2}, // left
-            {5, 4, 7}, {5, 7, 6}, // back
-            {4, 0, 3}, {4, 3, 7}, // right
-            {4, 5, 1}, {4, 1, 0}, // top
-            {3, 2, 6}, {3, 6, 7}  // bottom
+            {1, 5, 6},
+            {1, 6, 2}, // left
+            {5, 4, 7},
+            {5, 7, 6}, // back
+            {4, 0, 3},
+            {4, 3, 7}, // right
+            {4, 5, 1},
+            {4, 1, 0}, // top
+            {3, 2, 6},
+            {3, 6, 7} // bottom
         };
 
         piram.points = {
-            {-0.5f, 0.0f, -0.5f}, // 0 
+            {-0.5f, 0.0f, -0.5f}, // 0
             {0.5f, 0.0f, -0.5f},  // 1
-            {0.5f, 0.0f, 0.5f},   // 2 
-            {-0.5f, 0.0f, 0.5f},  // 3 
+            {0.5f, 0.0f, 0.5f},   // 2
+            {-0.5f, 0.0f, 0.5f},  // 3
             {0.0f, 1.0f, 0.0f}    // 4
         };
 
         piram.faces = {
             {2, 1, 0}, {3, 2, 0}, // bottom
-            {0, 1, 4}, // front
-            {1, 2, 4}, // right
-            {2, 3, 4}, // back
-            {3, 0, 4}  // left
+            {0, 1, 4},            // front
+            {1, 2, 4},            // right
+            {2, 3, 4},            // back
+            {3, 0, 4}             // left
         };
 
         int rings = 15;
         int segments = 15;
-        for(int ring = 0; ring <= rings; ++ring)
+        for (int ring = 0; ring <= rings; ++ring)
         {
             float theta = ring * PI / rings;
-            float y = cos(theta);  
-            float r = sin(theta);  
+            float y = cos(theta);
+            float r = sin(theta);
 
-            for(int seg = 0; seg <= segments; ++seg)
+            for (int seg = 0; seg <= segments; ++seg)
             {
                 float phi = seg * 2 * PI / segments;
                 float x = r * cos(phi);
@@ -418,9 +326,9 @@ private:
             }
         }
 
-        for(int ring = 0; ring < rings; ++ring)
+        for (int ring = 0; ring < rings; ++ring)
         {
-            for(int seg = 0; seg < segments; ++seg)
+            for (int seg = 0; seg < segments; ++seg)
             {
                 int current = ring * (segments + 1) + seg;
                 int next = current + segments + 1;
@@ -433,17 +341,17 @@ private:
         cube.position = Vector3(0, 0, 0);
         cube.scale = Vector3(5, 5, 5);
         cube.angle = Vector3::ZERO;
-        cube.color = Color::White;
+        cube.color = Color(123, 44, 213);
 
         piram.position = Vector3(0, 0, 0);
         piram.scale = Vector3(10, 10, 10);
         piram.angle = Vector3::ZERO;
-        piram.color = Color::White;
+        piram.color = Color::Blue;
 
         sfear.position = Vector3(0, 0, 0);
         sfear.scale = Vector3(10, 10, 10);
         sfear.angle = Vector3::ZERO;
-        sfear.color = Color::White;
+        sfear.color = Color::Red;
     }
 
     void Update() override
@@ -456,20 +364,53 @@ private:
             timer = 0;
         }
 
-        if(Input::IsKey(Key::Key_W))
+        Vector3 cameraDirection;
+        float fYawDirection = 0;
+
+        if (Input::IsKey(Key::Key_W))
+            cameraDirection.z += 1;
+
+        if (Input::IsKey(Key::Key_S))
+            cameraDirection.z -= 1;
+
+        if (Input::IsKey(Key::Key_A))
+            cameraDirection.x += 1;
+
+        if (Input::IsKey(Key::Key_D))
+            cameraDirection.x -= 1;
+
+        if (Input::IsKey(Key::Key_LeftShift))
+            cameraDirection.y -= 1;
+
+        if (Input::IsKey(Key::Key_Space))
+            cameraDirection.y += 1;
+
+        if (Input::IsKey(Key::Key_LeftArrow))
+            fYawDirection += 1;
+
+        if (Input::IsKey(Key::Key_RightArrow))
+            fYawDirection -= 1;
+
+        if(cameraDirection.x != 0 || cameraDirection.y != 0 || cameraDirection.z != 0 || fYawDirection != 0)
         {
-            cameraPosition.z+=1;
+            cameraAngle += NormalizeAngle(Vector3(0, fYawDirection * 1.0f * Time::deltaTime, 0));
+
+            Matrix cameraRotation = RotateZYX_Matrix(cameraAngle);
+            Matrix forwardMatrix(4, 1);
+
+            forwardMatrix = cameraRotation * Vector3::FORWARD;
+
+            lookDirection.x = forwardMatrix(0, 0);
+            lookDirection.y = forwardMatrix(1, 0);
+            lookDirection.z = forwardMatrix(2, 0);
+
+            cameraPosition += Vector3::Normalize(cameraDirection) * 8.0f * Time::deltaTime;
+            targetPosition = cameraPosition + lookDirection;
+
             CameraMatrix = Camera_Matrix(cameraPosition, targetPosition, Vector3::UP);
             ViewMatrix = CameraMatrix.Transpose();
         }
 
-        if(Input::IsKey(Key::Key_S))
-        {
-            cameraPosition.z-=1;
-            CameraMatrix = Camera_Matrix(cameraPosition, targetPosition, Vector3::UP);
-            ViewMatrix = CameraMatrix.Transpose();
-        }
-        
         cube.angle.z -= PI / 2 * Time::deltaTime;
         cube.angle.x -= PI / 2 * Time::deltaTime;
         cube.angle.y += PI / 2 * Time::deltaTime;
@@ -485,7 +426,7 @@ private:
 
     void Draw() override
     {
-        cube.Draw();
+        // cube.Draw();
         // piram.Draw();
         sfear.Draw();
 
@@ -496,7 +437,7 @@ public:
     EngineScene()
     {
         Screen::BacgroundColor = Color::Black;
-        MaxFPS = 9999;
-        Init(1280, 720, 3, L"3D Engine");
+        MaxFPS = 60;
+        Init(1280, 720, 4, L"3D Engine");
     }
 };
