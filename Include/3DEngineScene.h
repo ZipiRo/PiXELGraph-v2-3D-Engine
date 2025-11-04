@@ -1,6 +1,7 @@
 #include "Core/PiXELGraph.h"
 
 #include "Vector3.h"
+#include "Vector4.h"
 #include "Matrix.h"
 
 float ScreenWidth;
@@ -12,6 +13,8 @@ Vector3 cameraPosition;
 Vector3 targetPosition;
 Vector3 lookDirection;
 Vector3 cameraAngle;
+Matrix cameraRotationMatrix;
+bool cameraUpdate;
 
 Vector3 lightDirection;
 
@@ -152,36 +155,6 @@ Vector3 NormalizeAngle(Vector3 angle)
     return Vector3(NormalizeAngle(angle.x), NormalizeAngle(angle.y), NormalizeAngle(angle.z));
 }
 
-Vector3 TransformPoint(const Vector3 &point, const Vector3 &position, const Vector3 &scale, const Vector3 &angle)
-{
-    Vector3 normAngle = NormalizeAngle(angle);
-    Matrix ModelMatrix = Model_Matrix(position, scale, normAngle);
-
-    Matrix PointMatrix(4, 1);
-    PointMatrix(0, 0) = point.x;
-    PointMatrix(1, 0) = point.y;
-    PointMatrix(2, 0) = point.z;
-    PointMatrix(3, 0) = 1;
-
-    Matrix TPointMatrix = PerspectiveMatrix * ViewMatrix * (ModelMatrix * PointMatrix);
-
-    Vector3 transformedPoint(
-        TPointMatrix(0, 0),
-        TPointMatrix(1, 0),
-        TPointMatrix(2, 0));
-
-    float w = TPointMatrix(3, 0);
-
-    if (w != 0)
-    {
-        transformedPoint.x /= w;
-        transformedPoint.y /= w;
-        transformedPoint.z /= w;
-    }
-
-    return transformedPoint;
-}
-
 void DrawTriangle(const Vector3 &P1, const Vector3 &P2, const Vector3 &P3, const Color &color)
 {
     DrawLine(P1.x, P1.y, P2.x, P2.y, color);
@@ -191,11 +164,10 @@ void DrawTriangle(const Vector3 &P1, const Vector3 &P2, const Vector3 &P3, const
 
 float EdgeFunction(const Vector3 &a, const Vector3 &b, const Vector3 &c)
 {
-    // Signed area of triangle abc
     return float(c.x - a.x) * float(b.y - a.y) - float(c.y - a.y) * float(b.x - a.x);
 }
 
-void FillTriangle(Vector3 P1, Vector3 P2, Vector3 P3, Color color)
+void FillTriangle(const Vector3 &P1, const Vector3 &P2, const Vector3 &P3, Color color)
 {
     // 1. Bounding box
     int minX = std::min(P1.x, std::min(P2.x, P3.x));
@@ -208,8 +180,6 @@ void FillTriangle(Vector3 P1, Vector3 P2, Vector3 P3, Color color)
     minY = std::max(minY, 0);
     maxX = std::min(maxX, (int)ScreenWidth - 1);
     maxY = std::min(maxY, (int)ScreenHeight - 1);
-
-    float area = EdgeFunction(P1, P2, P3);
 
     // 2. Loop over pixels
     for (int y = minY; y <= maxY; y++)
@@ -241,6 +211,7 @@ private:
     Mesh cube;
     Mesh piram;
     Mesh sfear;
+    Mesh mesh;
 
     Text fps_text;
 
@@ -264,6 +235,10 @@ private:
         lightDirection = Vector3(0, 0, -1);
 
         PerspectiveMatrix = Perspective_Matrix(fieldOfView, aspectRatio, 0.1f, 100.0f);
+
+        cameraRotationMatrix = RotateZYX_Matrix(cameraAngle);
+        lookDirection = cameraRotationMatrix * Vector3::FORWARD;
+        targetPosition = cameraPosition + lookDirection;
 
         CameraMatrix = Camera_Matrix(cameraPosition, targetPosition, Vector3::UP);
         ViewMatrix = CameraMatrix.Transpose();
@@ -338,8 +313,10 @@ private:
             }
         }
 
+        mesh.LoadFromFile("dir.obj");
+
         cube.position = Vector3(0, 0, 0);
-        cube.scale = Vector3(5, 5, 5);
+        cube.scale = Vector3(10, 10, 10);
         cube.angle = Vector3::ZERO;
         cube.color = Color(123, 44, 213);
 
@@ -351,7 +328,12 @@ private:
         sfear.position = Vector3(0, 0, 0);
         sfear.scale = Vector3(10, 10, 10);
         sfear.angle = Vector3::ZERO;
-        sfear.color = Color::Red;
+        sfear.color = Color::White;
+        
+        mesh.position = Vector3(0, 0, 0);
+        mesh.scale = Vector3(1, 1, 1);
+        mesh.angle = Vector3::ZERO;
+        mesh.color = Color::White;
     }
 
     void Update() override
@@ -365,7 +347,8 @@ private:
         }
 
         Vector3 cameraDirection;
-        float fYawDirection = 0;
+        float yawDirection = 0;
+        float pitchDirection = 0;
 
         if (Input::IsKey(Key::Key_W))
             cameraDirection.z += 1;
@@ -386,29 +369,38 @@ private:
             cameraDirection.y += 1;
 
         if (Input::IsKey(Key::Key_LeftArrow))
-            fYawDirection += 1;
+            yawDirection += 1;
 
         if (Input::IsKey(Key::Key_RightArrow))
-            fYawDirection -= 1;
+            yawDirection -= 1;
 
-        if(cameraDirection.x != 0 || cameraDirection.y != 0 || cameraDirection.z != 0 || fYawDirection != 0)
+        if (Input::IsKey(Key::Key_DownArrow))
+            pitchDirection += 1;
+
+        if (Input::IsKey(Key::Key_UpArrow))
+            pitchDirection -= 1;
+
+        if(yawDirection != 0 || pitchDirection != 0)
         {
-            cameraAngle += NormalizeAngle(Vector3(0, fYawDirection * 1.0f * Time::deltaTime, 0));
+            cameraAngle += NormalizeAngle(Vector3(pitchDirection * 1.0f * Time::deltaTime, yawDirection * 1.0f * Time::deltaTime, 0));
+            cameraRotationMatrix = RotateZYX_Matrix(cameraAngle);
+        
+            lookDirection = cameraRotationMatrix * Vector3::FORWARD;
+            cameraUpdate = true;
+        }
 
-            Matrix cameraRotation = RotateZYX_Matrix(cameraAngle);
-            Matrix forwardMatrix(4, 1);
-
-            forwardMatrix = cameraRotation * Vector3::FORWARD;
-
-            lookDirection.x = forwardMatrix(0, 0);
-            lookDirection.y = forwardMatrix(1, 0);
-            lookDirection.z = forwardMatrix(2, 0);
-
+        if(cameraDirection.x != 0 || cameraDirection.y != 0 || cameraDirection.z != 0)
+        {
             cameraPosition += Vector3::Normalize(cameraDirection) * 8.0f * Time::deltaTime;
+            cameraUpdate = true;
+        }
+        
+        if(cameraUpdate)
+        {
             targetPosition = cameraPosition + lookDirection;
-
             CameraMatrix = Camera_Matrix(cameraPosition, targetPosition, Vector3::UP);
             ViewMatrix = CameraMatrix.Transpose();
+            cameraUpdate = false;
         }
 
         cube.angle.z -= PI / 2 * Time::deltaTime;
@@ -419,8 +411,8 @@ private:
         piram.angle.x += PI / 2 * Time::deltaTime;
         piram.angle.y += PI / 2 * Time::deltaTime;
 
-        sfear.angle.z += PI / 2 * Time::deltaTime;
-        sfear.angle.x += PI / 2 * Time::deltaTime;
+        // sfear.angle.z += PI / 2 * Time::deltaTime;
+        // sfear.angle.x += PI / 2 * Time::deltaTime;
         sfear.angle.y += PI / 2 * Time::deltaTime;
     }
 
@@ -428,7 +420,9 @@ private:
     {
         // cube.Draw();
         // piram.Draw();
-        sfear.Draw();
+        // sfear.Draw();
+
+        mesh.Draw();
 
         DrawTEXT(fps_text);
     }
@@ -438,6 +432,6 @@ public:
     {
         Screen::BacgroundColor = Color::Black;
         MaxFPS = 60;
-        Init(1280, 720, 4, L"3D Engine");
+        Init(1280, 720, 2, L"3D Engine");
     }
 };

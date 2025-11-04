@@ -56,15 +56,18 @@ public:
         return result;
     }
 
-    Matrix operator*(const Vector3 &vector) const
-    {
-        Matrix vectorMatrix(4, 1);
-        vectorMatrix(0, 0) = vector.x;
-        vectorMatrix(1, 0) = vector.y;
-        vectorMatrix(2, 0) = vector.z;
-        vectorMatrix(3, 0) = 1; 
-
-        return *this * vectorMatrix;
-    }
-
+    friend Vector4 operator*(const Matrix &matrix, const Vector4 &vector);
 };
+
+Vector4 operator*(const Matrix &matrix, const Vector4 &vector)
+{
+    Matrix vectorMatrix(4, 1);
+    vectorMatrix(0, 0) = vector.x;
+    vectorMatrix(1, 0) = vector.y;
+    vectorMatrix(2, 0) = vector.z;
+    vectorMatrix(3, 0) = vector.w; 
+
+    Matrix resultMatrix = matrix * vectorMatrix;
+
+    return Vector4(resultMatrix(0, 0), resultMatrix(1, 0), resultMatrix(2, 0), resultMatrix(3, 0));
+}

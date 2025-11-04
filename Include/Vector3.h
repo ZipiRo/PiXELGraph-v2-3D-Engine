@@ -1,3 +1,6 @@
+#pragma once
+
+class Vector4;
 class Vector3
 {
 public:
@@ -5,15 +8,16 @@ public:
 
     Vector3();
     Vector3(float x, float y, float z);
+    inline operator Vector4() const;
 
-    Vector3 &operator=(const Vector3 vector);
+    Vector3 &operator=(const Vector3& vector);
     bool operator!() const;
     bool operator==(const Vector3& vector);
     bool operator!=(const Vector3& vector);
     
     Vector3 operator-() const;
-    Vector3 operator+(const Vector3 vector) const;
-    Vector3 operator-(const Vector3 vector) const;
+    Vector3 operator+(const Vector3& vector) const;
+    Vector3 operator-(const Vector3& vector) const;
 
     Vector3 operator*(float scalar) const;
     Vector3 operator/(float scalar) const;
@@ -21,6 +25,8 @@ public:
     Vector3 &operator-=(const Vector3& vector);
     Vector3 &operator*=(float scalar);
     Vector3 &operator/=(float scalar);
+
+    Vector3 normalize();
 
     static const Vector3 ZERO;
     static const Vector3 UP;
@@ -39,9 +45,9 @@ const Vector3 Vector3::FORWARD = Vector3(0, 0, 1);
 
 Vector3::Vector3() 
 {
-    this->x = 0;
-    this->y = 0;
-    this->z = 0;
+    x = 0;
+    y = 0;
+    z = 0;
 }
 
 Vector3::Vector3(float x, float y, float z) 
@@ -51,85 +57,85 @@ Vector3::Vector3(float x, float y, float z)
     this->z = z;
 }
 
-Vector3& Vector3::operator=(const Vector3 vector) 
+Vector3& Vector3::operator=(const Vector3& vector) 
 {
     if (this != &vector) 
     {
-        this->x = vector.x;
-        this->y = vector.y;
-        this->z = vector.z;
+        x = vector.x;
+        y = vector.y;
+        z = vector.z;
     }
     return *this;
 }
 
 bool Vector3::operator==(const Vector3& vector)
 {
-    return (this->x == vector.x && this->y == vector.y && this->z == vector.z);
+    return (x == vector.x && y == vector.y && z == vector.z);
 }
 
 bool Vector3::operator!=(const Vector3& vector)
 {
-    return (this->x != vector.x && this->y != vector.y  && this->z != vector.z);
+    return (x != vector.x && y != vector.y  && z != vector.z);
 }
 
 bool Vector3::operator!() const
 {
-    return (!this->x && !this->y && !this->z);
+    return (!x && !y && !z);
 }
 
 Vector3 Vector3::operator-() const {
-    return Vector3(-this->x, -this->y, -this->z);
+    return Vector3(-x, -y, -z);
 }
 
-Vector3 Vector3::operator+(const Vector3 vector) const 
+Vector3 Vector3::operator+(const Vector3& vector) const 
 {
-    return Vector3(this->x + vector.x, this->y + vector.y, this->z + vector.z);
+    return Vector3(x + vector.x, y + vector.y, z + vector.z);
 }
 
-Vector3 Vector3::operator-(const Vector3 vector) const 
+Vector3 Vector3::operator-(const Vector3& vector) const 
 {
-    return Vector3(this->x - vector.x, this->y - vector.y, this->z - vector.z);
+    return Vector3(x - vector.x, y - vector.y, z - vector.z);
 }
 
 Vector3 Vector3::operator*(float scalar) const 
 {
-    return Vector3(this->x * scalar, this->y * scalar, this->z * scalar);
+    return Vector3(x * scalar, y * scalar, z * scalar);
 }
 
 Vector3 Vector3::operator/(float scalar) const 
 {
-    return Vector3(this->x / scalar, this->y / scalar, this->z / scalar);
+    return Vector3(x / scalar, y / scalar, z / scalar);
 }
 
 Vector3& Vector3::operator+=(const Vector3& vector) 
 {
-    this->x += vector.x;
-    this->y += vector.y;
-    this->z += vector.z;
+    x += vector.x;
+    y += vector.y;
+    z += vector.z;
     return *this;
 }
 
 Vector3& Vector3::operator-=(const Vector3& vector) 
 {
-    this->x -= vector.x;
-    this->y -= vector.y;
-    this->z -= vector.z;
+    x -= vector.x;
+    y -= vector.y;
+    z -= vector.z;
     return *this;
 }
 
 Vector3& Vector3::operator*=(float scalar) 
 {
-    this->x *= scalar;
-    this->y *= scalar;
-    this->z *= scalar;
+    x *= scalar;
+    y *= scalar;
+    z *= scalar;
     return *this;
 }
 
 Vector3& Vector3::operator/=(float scalar) 
 {
-    this->x /= scalar;
-    this->y /= scalar;
-    this->z /= scalar;
+    x /= scalar;
+    y /= scalar;
+    z /= scalar;
     return *this;
 }
 
@@ -160,11 +166,14 @@ float Vector3::Length(const Vector3 &vector)
 Vector3 Vector3::Normalize(const Vector3 &vector) 
 {
     float length = Vector3::Length(vector);
-    if (length == 0) {
-        return Vector3();
-    }
+    if (length == 0) return Vector3();
 
     return Vector3(vector.x / length, vector.y / length, vector.z / length);
+}
+
+Vector3 Vector3::normalize()
+{
+    return Vector3::Normalize(*this);
 }
 
 float Vector3::DotProduct(const Vector3 &a, const Vector3 &b) 
