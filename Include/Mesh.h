@@ -1,6 +1,6 @@
 #pragma once
 
-#include <fstream>
+#include <algorithm>
 #include <sstream>
 
 struct Triangle
@@ -46,7 +46,7 @@ struct Mesh
 
             triangle.normal = normal;
             triangle.normalDot = Vector3::DotProduct(normal, worldPoints[0] - cameraPosition);
-            triangle.lightIntensity = std::max(0.0f, Vector3::DotProduct(lightDirection, normal));
+            triangle.lightIntensity = std::max(0.1f, Vector3::DotProduct(lightDirection, normal));
 
             if(triangle.normalDot >= 0) continue;
             for(int i = 0; i < worldPoints.size(); i++)
@@ -57,8 +57,8 @@ struct Mesh
                     projectedPoint /= projectedPoint.w;
 
                 Vector3 screenPoint;
-                screenPoint.x = (projectedPoint.x + 1.0f) * 0.5f * ScreenWidth;
-                screenPoint.y = (1.0f - projectedPoint.y) * 0.5f * ScreenHeight;
+                screenPoint.x = (projectedPoint.x + 1) * 0.5f * ScreenWidth;
+                screenPoint.y = (1 - projectedPoint.y) * 0.5f * ScreenHeight;
                 screenPoint.z = projectedPoint.z;
 
                 transformedPoints[triangle.indices[i]] = screenPoint;
@@ -72,15 +72,12 @@ struct Mesh
 
         std::vector<Triangle> facesToDraw = faces;
 
-        for(int i = 0; i < facesToDraw.size() - 1; i++)
-        for(int j = i + 1; j < facesToDraw.size(); j++)
-        {
-            float z1 = (transformedPoints[faces[i].indices[0]].z + transformedPoints[faces[i].indices[1]].z + transformedPoints[faces[i].indices[2]].z) / 3;
-            float z2 = (transformedPoints[faces[j].indices[0]].z + transformedPoints[faces[j].indices[1]].z + transformedPoints[faces[j].indices[2]].z) / 3;
+        std::sort(facesToDraw.begin(), facesToDraw.end(), [this](const Triangle &T1, const Triangle &T2) {
+            float z1 = (transformedPoints[T1.indices[0]].z + transformedPoints[T1.indices[1]].z + transformedPoints[T1.indices[2]].z) / 3;
+            float z2 = (transformedPoints[T2.indices[0]].z + transformedPoints[T2.indices[1]].z + transformedPoints[T2.indices[2]].z) / 3;
             
-            if(z1 < z2)
-                std::swap(facesToDraw[i], facesToDraw[j]);
-        }
+            return z1 < z2;
+        });
 
         for (const auto &triangle : facesToDraw)
         {
