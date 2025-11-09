@@ -30,7 +30,7 @@ public:
         return matrix[row][col];
     }
 
-    Matrix Transpose()
+    Matrix transpose()
     {
         Matrix new_matrix = *this;
 
