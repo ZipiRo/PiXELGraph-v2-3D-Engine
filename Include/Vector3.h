@@ -190,3 +190,8 @@ Vector3 Vector3::CrossProduct(const Vector3 &a, const Vector3 &b)
         a.x * b.y - a.y * b.x
     );
 }
+
+Vector3 NormalizeAngle(Vector3 angle)
+{
+    return Vector3(NormalizeAngle(angle.x), NormalizeAngle(angle.y), NormalizeAngle(angle.z));
+}

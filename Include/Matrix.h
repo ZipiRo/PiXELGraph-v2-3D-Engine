@@ -161,3 +161,52 @@ Matrix RotateYXZ_Matrix(const Vector3 &angle)
 {
     return Matrix::RotateY(angle.y) * Matrix::RotateX(angle.x) * Matrix::RotateZ(angle.z);
 }
+
+Matrix Model_Matrix(const Vector3 &position, const Vector3 &scale, const Vector3 &angle)
+{
+    return Matrix::Translate(position) * RotateZYX_Matrix(angle) * Matrix::Scale(scale);
+}
+
+Matrix Camera_Matrix(const Vector3 &cameraPosition, const Vector3 &targetPosition, const Vector3 &upVector = Vector3::UP)
+{
+    Vector3 forward = Vector3::Normalize(cameraPosition - targetPosition);
+    Vector3 right = Vector3::Normalize(Vector3::CrossProduct(upVector, forward));
+    Vector3 up = Vector3::CrossProduct(forward, right);
+
+    Matrix matrix(4, 4);
+
+    matrix(0, 0) = right.x;
+    matrix(0, 1) = up.x;
+    matrix(0, 2) = -forward.x;
+
+    matrix(1, 0) = right.y;
+    matrix(1, 1) = up.y;
+    matrix(1, 2) = -forward.y;
+
+    matrix(2, 0) = right.z;
+    matrix(2, 1) = up.z;
+    matrix(2, 2) = -forward.z;
+
+    matrix(3, 0) = -Vector3::DotProduct(right, cameraPosition);
+    matrix(3, 1) = -Vector3::DotProduct(up, cameraPosition);
+    matrix(3, 2) = -Vector3::DotProduct(forward, cameraPosition);
+
+    matrix(3, 3) = 1;
+
+    return matrix;
+}
+
+Matrix Perspective_Matrix(float fov, float aspect, float nearPlane, float farPlane)
+{
+    float tan_half_FOV = tanf(fov * 0.5f);
+    Matrix matrix(4, 4);
+
+    matrix(0, 0) = 1.0f / (aspect * tan_half_FOV);
+    matrix(1, 1) = 1.0f / tan_half_FOV;
+    matrix(2, 2) = -(farPlane + nearPlane) / (farPlane - nearPlane);
+    matrix(2, 3) = -(2.0f * farPlane * nearPlane) / (farPlane - nearPlane);
+    matrix(3, 2) = -1.0f;
+    matrix(3, 3) = 0.0f;
+
+    return matrix;
+}
