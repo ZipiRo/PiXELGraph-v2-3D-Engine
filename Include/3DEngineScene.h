@@ -95,6 +95,7 @@ private:
             timer = 0;
         }
 
+        #pragma region CameraMovemant 
         Vector3 cameraDirection;
         int yawDirection = 0;
         int pitchDirection = 0;
@@ -150,7 +151,8 @@ private:
             Vector3 cameraPosition = Vector3::Normalize(cameraDirection) * 8.0f * Time::deltaTime;
             Camera::Move(cameraPosition);
         }
-
+        #pragma endregion
+        
         Camera::Update();
 
         cube.angle.z -= PI / 2 * Time::deltaTime;
@@ -188,7 +190,7 @@ public:
     EngineScene()
     {
         Screen::BacgroundColor = Color(0, 255, 255);
-        MaxFPS = 999;
+        MaxFPS = 60;
         Init(1240, 720, 1, L"3D Engine");
     }
 };

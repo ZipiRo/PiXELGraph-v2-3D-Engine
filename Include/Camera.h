@@ -5,26 +5,24 @@ class Camera
 private:
     Vector3 targetPosition;
     Vector3 lookDirection;
-
-    Matrix CameraMatrix;
-    Matrix RotationMatrix;
-
+    
     Vector3 position;
     Vector3 angle;
 
     float fov;
     float aspect;
 
-    bool cameraUpdate = true;
+    bool cameraUpdate;
     Camera()
     {
-        RotationMatrix = RotateZYX_Matrix(angle);
+        cameraUpdate = false;
+
+        const Matrix &RotationMatrix = RotateZYX_Matrix(angle);
         lookDirection = RotationMatrix * Vector3::FORWARD;
         targetPosition = position + lookDirection;
 
-        CameraMatrix = Camera_Matrix(position, targetPosition, Vector3::UP);
+        Matrix CameraMatrix = Camera_Matrix(position, targetPosition, Vector3::UP);
         ViewMatrix = CameraMatrix.transpose();
-        cameraUpdate = true;
     }
 
 public:
@@ -66,8 +64,8 @@ public:
 
         instance.angle += amount;
         
-        instance.RotationMatrix = RotateZYX_Matrix(instance.angle);
-        instance.lookDirection = instance.RotationMatrix * Vector3::FORWARD;
+        const Matrix &RotationMatrix = RotateZYX_Matrix(instance.angle);
+        instance.lookDirection = RotationMatrix * Vector3::FORWARD;
         instance.cameraUpdate = true;
     }
     
@@ -77,8 +75,8 @@ public:
 
         instance.angle = angle;
         
-        instance.RotationMatrix = RotateZYX_Matrix(instance.angle);
-        instance.lookDirection = instance.RotationMatrix * Vector3::FORWARD;
+        const Matrix &RotationMatrix = RotateZYX_Matrix(instance.angle);
+        instance.lookDirection = RotationMatrix * Vector3::FORWARD;
         instance.cameraUpdate = true;
     }
 
@@ -105,8 +103,8 @@ public:
         if(instance.cameraUpdate)
         {
             instance.targetPosition = instance.position + instance.lookDirection;
-            instance.CameraMatrix = Camera_Matrix(instance.position, instance.targetPosition, Vector3::UP);
-            ViewMatrix = instance.CameraMatrix.transpose();
+            Matrix CameraMatrix = Camera_Matrix(instance.position, instance.targetPosition, Vector3::UP);
+            ViewMatrix = CameraMatrix.transpose();
             instance.cameraUpdate = false;
         }
     }
