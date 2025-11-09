@@ -56,16 +56,23 @@ public:
         return result;
     }
 
-    static Matrix RotateX(float angle);
-    static Matrix RotateY(float angle);
-    static Matrix RotateZ(float angle);
-    static Matrix Translate(const Vector3 &position); 
-    static Matrix Scale(const Vector3 &Scale); 
-
     friend Vector4 operator*(const Matrix &matrix, const Vector4 &vector);
 };
 
-Matrix Matrix::RotateX(float angle)
+Vector4 operator*(const Matrix &matrix, const Vector4 &vector)
+{
+    Matrix vectorMatrix(4, 1);
+    vectorMatrix(0, 0) = vector.x;
+    vectorMatrix(1, 0) = vector.y;
+    vectorMatrix(2, 0) = vector.z;
+    vectorMatrix(3, 0) = vector.w; 
+
+    Matrix resultMatrix = matrix * vectorMatrix;
+
+    return Vector4(resultMatrix(0, 0), resultMatrix(1, 0), resultMatrix(2, 0), resultMatrix(3, 0));
+}
+
+Matrix RotateX_Matrix(float angle)
 {
     Matrix matrix(4, 4);
 
@@ -81,7 +88,7 @@ Matrix Matrix::RotateX(float angle)
 
     return matrix;
 }
-Matrix Matrix::RotateY(float angle)
+Matrix RotateY_Matrix(float angle)
 {
     Matrix matrix(4, 4);
 
@@ -97,7 +104,7 @@ Matrix Matrix::RotateY(float angle)
 
     return matrix;
 }
-Matrix Matrix::RotateZ(float angle)
+Matrix RotateZ_Matrix(float angle)
 {
     Matrix matrix(4, 4);
 
@@ -113,7 +120,7 @@ Matrix Matrix::RotateZ(float angle)
 
     return matrix;
 }
-Matrix Matrix::Translate(const Vector3 &position)
+Matrix Translate_Matrix(const Vector3 &position)
 {
     Matrix matrix(4, 4);
 
@@ -127,7 +134,7 @@ Matrix Matrix::Translate(const Vector3 &position)
 
     return matrix;
 }
-Matrix Matrix::Scale(const Vector3 &scale)
+Matrix Scale_Matrix(const Vector3 &scale)
 {
     Matrix matrix(4, 4);
 
@@ -139,32 +146,19 @@ Matrix Matrix::Scale(const Vector3 &scale)
     return matrix;
 }
 
-Vector4 operator*(const Matrix &matrix, const Vector4 &vector)
-{
-    Matrix vectorMatrix(4, 1);
-    vectorMatrix(0, 0) = vector.x;
-    vectorMatrix(1, 0) = vector.y;
-    vectorMatrix(2, 0) = vector.z;
-    vectorMatrix(3, 0) = vector.w; 
-
-    Matrix resultMatrix = matrix * vectorMatrix;
-
-    return Vector4(resultMatrix(0, 0), resultMatrix(1, 0), resultMatrix(2, 0), resultMatrix(3, 0));
-}
-
 Matrix RotateZYX_Matrix(const Vector3 &angle)
 {
-    return Matrix::RotateZ(angle.z) * Matrix::RotateY(angle.y) * Matrix::RotateX(angle.x);
+    return RotateZ_Matrix(angle.z) * RotateY_Matrix(angle.y) * RotateX_Matrix(angle.x);
 }
 
-Matrix RotateYXZ_Matrix(const Vector3 &angle)
+Matrix RotateY_MatrixXZ_Matrix(const Vector3 &angle)
 {
-    return Matrix::RotateY(angle.y) * Matrix::RotateX(angle.x) * Matrix::RotateZ(angle.z);
+    return RotateY_Matrix(angle.y) * RotateX_Matrix(angle.x) * RotateZ_Matrix(angle.z);
 }
 
 Matrix Model_Matrix(const Vector3 &position, const Vector3 &scale, const Vector3 &angle)
 {
-    return Matrix::Translate(position) * RotateZYX_Matrix(angle) * Matrix::Scale(scale);
+    return Translate_Matrix(position) * RotateZYX_Matrix(angle) * Scale_Matrix(scale);
 }
 
 Matrix Camera_Matrix(const Vector3 &cameraPosition, const Vector3 &targetPosition, const Vector3 &upVector = Vector3::UP)

@@ -36,6 +36,7 @@ private:
         float aspect = ScreenWidth / ScreenHeight;
         
         Camera::GetInstance().Init(fov, aspect);
+        Camera::SetPosition({0, 0, -20});
 
         lightDirection = Vector3(0, 0, -1);
 
@@ -178,9 +179,9 @@ private:
         // yAxis.Draw();
         // zAxis.Draw();
 
-        cube.Draw();
+        // cube.Draw();
         // piram.Draw();
-        // sfear.Draw();
+        sfear.Draw();
         // mesh.Draw(); 
 
         DrawTEXT(fps_text);

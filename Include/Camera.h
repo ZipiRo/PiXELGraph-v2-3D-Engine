@@ -15,14 +15,13 @@ private:
     bool cameraUpdate;
     Camera()
     {
-        cameraUpdate = false;
-
         const Matrix &RotationMatrix = RotateZYX_Matrix(angle);
         lookDirection = RotationMatrix * Vector3::FORWARD;
         targetPosition = position + lookDirection;
 
         Matrix CameraMatrix = Camera_Matrix(position, targetPosition, Vector3::UP);
         ViewMatrix = CameraMatrix.transpose();
+        cameraUpdate = true;
     }
 
 public:
@@ -105,6 +104,7 @@ public:
             instance.targetPosition = instance.position + instance.lookDirection;
             Matrix CameraMatrix = Camera_Matrix(instance.position, instance.targetPosition, Vector3::UP);
             ViewMatrix = CameraMatrix.transpose();
+            
             instance.cameraUpdate = false;
         }
     }
