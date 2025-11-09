@@ -22,6 +22,7 @@ struct Mesh
     std::vector<Triangle> faces;
 
     Color color;
+    Color outline = Color::Transparent;
 
     void Transform()
     {
@@ -91,7 +92,9 @@ struct Mesh
             Color faceColor(color.r * triangle.lightIntensity, color.g * triangle.lightIntensity, color.b * triangle.lightIntensity);
 
             FillTriangle(P1, P2, P3, faceColor);
-            // DrawTriangle(P1, P2, P3, Color::White);
+            
+            if(outline != Color::Transparent)
+                DrawTriangle(P1, P2, P3, color);
         }
     }
 
@@ -132,3 +135,147 @@ struct Mesh
         object.close();
     }
 };
+
+namespace MeshShapes
+{
+    Mesh CreateCube()
+    {
+        Mesh mesh;
+
+        mesh.points = {
+            {-0.5f, 0.5f, 0.5f},  // 0
+            {0.5f, 0.5f, 0.5f},   // 1
+            {0.5f, -0.5f, 0.5f},  // 2
+            {-0.5f, -0.5f, 0.5f}, // 3
+            {-0.5f, 0.5f, -0.5f}, // 4
+            {0.5f, 0.5f, -0.5f},  // 5
+            {0.5f, -0.5f, -0.5f}, // 6
+            {-0.5f, -0.5f, -0.5f} // 7
+        };
+
+        mesh.faces = {
+            {0, 1, 2}, {0, 2, 3}, // front
+            {1, 5, 6},
+            {1, 6, 2}, // left
+            {5, 4, 7},
+            {5, 7, 6}, // back
+            {4, 0, 3},
+            {4, 3, 7}, // right
+            {4, 5, 1},
+            {4, 1, 0}, // top
+            {3, 2, 6},
+            {3, 6, 7} // bottom
+        };
+
+        return mesh;
+    }
+
+    Mesh CreatePiramide()
+    {
+        Mesh mesh;
+
+        mesh.points = {
+            {-0.5f, 0.0f, -0.5f}, // 0
+            {0.5f, 0.0f, -0.5f},  // 1
+            {0.5f, 0.0f, 0.5f},   // 2
+            {-0.5f, 0.0f, 0.5f},  // 3
+            {0.0f, 1.0f, 0.0f}    // 4
+        };
+
+        mesh.faces = {
+            {2, 1, 0}, {3, 2, 0}, // bottom
+            {0, 1, 4},            // front
+            {1, 2, 4},            // right
+            {2, 3, 4},            // back
+            {3, 0, 4}             // left
+        };
+
+        return mesh;
+    }
+
+    Mesh CreateSfear(int rings = 15, int segments = 15)
+    {
+        Mesh mesh;
+
+        for (int ring = 0; ring <= rings; ++ring)
+        {
+            float theta = ring * PI / rings;
+            float y = cos(theta);
+            float r = sin(theta);
+
+            for (int seg = 0; seg <= segments; ++seg)
+            {
+                float phi = seg * 2 * PI / segments;
+                float x = r * cos(phi);
+                float z = r * sin(phi);
+                mesh.points.push_back({x, y, z});
+            }
+        }
+
+        for (int ring = 0; ring < rings; ++ring)
+        {
+            for (int seg = 0; seg < segments; ++seg)
+            {
+                int current = ring * (segments + 1) + seg;
+                int next = current + segments + 1;
+
+                mesh.faces.push_back({current, next, current + 1});
+                mesh.faces.push_back({current + 1, next, next + 1});
+            }
+        }
+
+        return mesh;
+    }
+
+    Mesh CreateCilinder(int segments = 15)
+    {
+        Mesh mesh;
+
+        float halfHeight = 1.0f * 0.5f;
+        float angleStep = (2.0f * PI) / segments;
+
+        for (int i = 0; i < segments; i++)
+        {
+            float angle = i * angleStep;
+            float x = cos(angle) * 0.5f;
+            float z = sin(angle) * 0.5f;
+            mesh.points.push_back(Vector3(x, halfHeight, z));
+        }
+
+        for (int i = 0; i < segments; i++)
+        {
+            float angle = i * angleStep;
+            float x = cos(angle) * 0.5f;
+            float z = sin(angle) * 0.5f;
+            mesh.points.push_back(Vector3(x, -halfHeight, z));
+        }
+
+        int topCenterIndex = (int)mesh.points.size();
+        mesh.points.push_back(Vector3(0, halfHeight, 0));
+
+        int bottomCenterIndex = (int)mesh.points.size();
+        mesh.points.push_back(Vector3(0, -halfHeight, 0));
+
+        for (int i = 0; i < segments; i++)
+        {
+            int next = (i + 1) % segments;
+
+            int top1 = i;
+            int top2 = next;
+            int bottom1 = i + segments;
+            int bottom2 = next + segments;
+
+            mesh.faces.push_back({ top1, bottom1, bottom2 });
+            mesh.faces.push_back({ top1, bottom2, top2 });
+        }
+
+        for (int i = 0; i < segments; i++)
+        {
+            int next = (i + 1) % segments;
+            mesh.faces.push_back({ topCenterIndex, i, next });
+            mesh.faces.push_back({ bottomCenterIndex, next + segments, i + segments });
+        }
+
+        return mesh;
+    }
+}
